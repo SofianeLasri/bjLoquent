@@ -39,10 +39,8 @@ import java.util.logging.Logger;
  * @date Feb 24, 2018
  */
 public abstract class Model {
-
     private Object id;
-    protected final String primaryKey = "id";
-    public boolean incrementing = true;
+    protected String primaryKeyName = "id";
     protected final String keyType = "int";
 
     /**
@@ -50,39 +48,64 @@ public abstract class Model {
      * in plural, e.g. a model <code>class Person extends Model</code> will have
      * all of its fields persisted into a table called <code>persons</code>.
      * The <code>id</code> field will be set to the last inserted id if it not null.
+     *
+     * @return
      */
     public void create() {
-        Method[] mt = this.getClass().getDeclaredMethods();
-        List<Field> fields = Utility.getFields(mt, this, false);
+        Method[] methods = this.getClass().getDeclaredMethods();
+        List<Field> fields = Utility.getFields(methods, this, false, this.primaryKeyName);
         Connector connector = Connector.getInstance();
 
-        String sql = "INSERT INTO " + Utility.tableOf(this) + " (";
+        StringBuilder sql = new StringBuilder("INSERT INTO " + Utility.tableOf(this) + " (");
+        Field primaryKey = null;
+
         for (int i = 0; i < fields.size(); i++) {
             Field field = fields.get(i);
-
-            sql += field.getName();
-
-            if ((i + 1) < fields.size()) {
-                sql += ", ";
+            if (field.isPrimaryKey()) {
+                primaryKey = field;
             }
-        }
 
-        sql += ") VALUES (";
-        for (int i = 0; i < fields.size(); i++) {
-            Field field = fields.get(i);
-
-            sql += ("'" + field.getValue() + "'");
+            sql.append(field.getName());
 
             if ((i + 1) != fields.size()) {
-                sql += ", ";
+                sql.append(", ");
             }
         }
 
-        sql += ")";
+        sql.append(") VALUES (");
+        for (int i = 0; i < fields.size(); i++) {
+            sql.append("?");
+            if ((i + 1) != fields.size()) {
+                sql.append(", ");
+            }
+        }
 
-        Object generatedId = connector.execute(sql);
-        if (generatedId != null) {
-            this.id = generatedId;
+        sql.append(")");
+
+        try {
+            PreparedStatement statement = connector.open().prepareStatement(
+                    String.valueOf(sql),
+                    PreparedStatement.RETURN_GENERATED_KEYS
+            );
+
+            for (int i = 0; i < fields.size(); i++) {
+                Field field = fields.get(i);
+                statement.setObject(i + 1, field.getValue());
+            }
+
+            statement.executeUpdate();
+            if (primaryKey.getType().equals("int")) {
+                ResultSet rs = statement.getGeneratedKeys();
+                if (rs.next()) {
+                    String setPrimaryKeyMethod = "set" + primaryKey.getName().substring(0, 1).toUpperCase()
+                            + primaryKey.getName().substring(1);
+                    this.getClass().getDeclaredMethod(
+                            setPrimaryKeyMethod, int.class).invoke(this, rs.getInt(1)
+                    );
+                }
+            }
+        } catch (SQLException | InvocationTargetException | IllegalAccessException | NoSuchMethodException e) {
+            Logger.getLogger(Model.class.getName()).log(Level.SEVERE, null, e);
         }
     }
 
@@ -93,26 +116,31 @@ public abstract class Model {
      */
     public void save() {
         Method[] mt = this.getClass().getDeclaredMethods();
-        List<Field> fields = Utility.getFields(mt, this, false);
+        List<Field> fields = Utility.getFields(mt, this, false, this.primaryKeyName);
         Connector connector = Connector.getInstance();
 
+        Field primaryKey = null;
         StringBuilder preparedSql = new StringBuilder("UPDATE " + Utility.tableOf(this) + " SET ");
         for (int i = 0; i < fields.size(); i++) {
             Field field = fields.get(i);
 
-            preparedSql.append(field.getName()).append(" = ?");
+            if(!field.isPrimaryKey()) {
+                preparedSql.append(field.getName()).append(" = ?");
 
-            if ((i + 1) < fields.size()) {
-                preparedSql.append(", ");
+                if ((i + 1) < fields.size()) {
+                    preparedSql.append(", ");
+                }
+            } else {
+                primaryKey = field;
             }
         }
 
-        if (id == null) {
+        if (primaryKey == null) {
             Logger.getLogger(getClass().getName()).log(Level.SEVERE, "id cannot be null");
             return;
         }
 
-        preparedSql.append(" WHERE id = ?");
+        preparedSql.append(" WHERE " + this.primaryKeyName + " = ?");
 
         String sql = preparedSql.toString();
 
@@ -121,10 +149,12 @@ public abstract class Model {
 
             for (int i = 0; i < fields.size(); i++) {
                 Field field = fields.get(i);
-                statement.setObject(i + 1, field.getValue());
+                if (!field.isPrimaryKey()) {
+                    statement.setObject(i, field.getValue());
+                }
             }
 
-            statement.setObject(fields.size() + 1, id);
+            statement.setObject(fields.size(), primaryKey.getValue());
             statement.executeUpdate();
         } catch (SQLException ex) {
             Logger.getLogger(Model.class.getName()).log(Level.SEVERE, null, ex);
@@ -154,11 +184,11 @@ public abstract class Model {
         model.save();
     }
 
-    public static <M extends Model> M find(int id, Supplier<M> constructor) {
+    /*public static <M extends Model> M find(int id, Supplier<M> constructor) {
         M instance = constructor.get();
         Method[] methods = instance.getClass().getDeclaredMethods();
         List<Method> setters = new ArrayList<>();
-        List<Field> fields = Utility.getFields(methods, instance, true);
+        List<Field> fields = Utility.getFields(methods, instance, true, instance.primaryKeyName);
         Connector connector = Connector.getInstance();
 
         for (Method m : methods) {
@@ -198,7 +228,7 @@ public abstract class Model {
         List<M> models = new ArrayList<>();
         Method[] methods = instance.getClass().getDeclaredMethods();
         List<Method> setters = new ArrayList<>();
-        List<Field> fields = Utility.getFields(methods, instance, true);
+        List<Field> fields = Utility.getFields(methods, instance, true, instance.primaryKeyName);
         Connector connector = Connector.getInstance();
 
         for (Method m : methods) {
@@ -232,14 +262,6 @@ public abstract class Model {
         System.out.println(sql);
 
         return models;
-    }
-
-    public Object getId() {
-        return id;
-    }
-
-    public void setId(Integer id) {
-        this.id = id;
-    }
+    }*/
 
 }

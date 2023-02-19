@@ -31,7 +31,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- *
  * @author derickfelix
  * @date Feb 24, 2018
  */
@@ -47,10 +46,10 @@ public class Utility {
      * @param methods a array of methods of a object
      * @param invoker the object that is invoking each method
      * @param request whether it is request mode or not, if false, fields with
-     * null values will not be included
+     *                null values will not be included
      * @return a list of fields
      */
-    public static List<Field> getFields(Method[] methods, Object invoker, boolean request) {
+    public static List<Field> getFields(Method[] methods, Object invoker, boolean request, String primaryKeyName) {
         List<Field> fields = new ArrayList<>();
         try {
             for (int i = methods.length - 1; i >= 0; i--) {
@@ -60,7 +59,11 @@ public class Utility {
                     Class<?> type = methods[i].getReturnType();
 
                     if (request || value != null) {
-                        fields.add(new Field(name, value, type.getSimpleName()));
+                        if (name.equals(primaryKeyName)) {
+                            fields.add(0, new Field(name, value, type.getSimpleName(), true));
+                        } else {
+                            fields.add(new Field(name, value, type.getSimpleName()));
+                        }
                     }
                 }
             }

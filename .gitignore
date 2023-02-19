@@ -30,6 +30,11 @@ nbactions.xml
 nb-configuration.xml
 build.xml
 
+# Intellij specific #
+.idea/
+*.iml
+*.iws
+
 # External tool builders
 .externalToolBuilders/
 

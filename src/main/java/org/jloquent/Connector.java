@@ -46,7 +46,6 @@ public class Connector {
 
     public Connection open() {
         try {
-
             Class.forName(jdbc_driver);
             String url = type + config.getHostName() + ":" + config.getPortNumber() + "/" + config.getDatabaseName();
             connection = DriverManager.getConnection(url, config.getUsername(), config.getPassword());

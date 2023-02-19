@@ -25,6 +25,7 @@ package org.jloquent;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -34,20 +35,23 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- *
  * @author derickfelix
  * @date Feb 24, 2018
  */
 public abstract class Model {
 
-    private Integer id;
+    private Object id;
+    protected final String primaryKey = "id";
+    public boolean incrementing = true;
+    protected final String keyType = "int";
 
     /**
      * Creates a new entity into a table with the same name of a model child but
      * in plural, e.g. a model <code>class Person extends Model</code> will have
      * all of its fields persisted into a table called <code>persons</code>.
+     * The <code>id</code> field will be set to the last inserted id if it not null.
      */
-    public void save() {
+    public void create() {
         Method[] mt = this.getClass().getDeclaredMethods();
         List<Field> fields = Utility.getFields(mt, this, false);
         Connector connector = Connector.getInstance();
@@ -76,8 +80,10 @@ public abstract class Model {
 
         sql += ")";
 
-        connector.execute(sql);
-        System.out.println(sql);
+        Object generatedId = connector.execute(sql);
+        if (generatedId != null) {
+            this.id = generatedId;
+        }
     }
 
     /**
@@ -85,19 +91,19 @@ public abstract class Model {
      * plural, e.g. a model <code>class Person extends Model</code> will have
      * all of its fields updated, in a table called <code>persons</code>.
      */
-    public void update() {
+    public void save() {
         Method[] mt = this.getClass().getDeclaredMethods();
         List<Field> fields = Utility.getFields(mt, this, false);
         Connector connector = Connector.getInstance();
 
-        String sql = "UPDATE " + Utility.tableOf(this) + " SET ";
+        StringBuilder preparedSql = new StringBuilder("UPDATE " + Utility.tableOf(this) + " SET ");
         for (int i = 0; i < fields.size(); i++) {
             Field field = fields.get(i);
-            
-            sql += field.getName() + " = '" + field.getValue() + "'";
+
+            preparedSql.append(field.getName()).append(" = ?");
 
             if ((i + 1) < fields.size()) {
-                sql += ", ";
+                preparedSql.append(", ");
             }
         }
 
@@ -106,10 +112,23 @@ public abstract class Model {
             return;
         }
 
-        sql += " WHERE id = " + id;
+        preparedSql.append(" WHERE id = ?");
 
-        connector.execute(sql);
-        System.out.println(sql);
+        String sql = preparedSql.toString();
+
+        try {
+            PreparedStatement statement = connector.open().prepareStatement(sql);
+
+            for (int i = 0; i < fields.size(); i++) {
+                Field field = fields.get(i);
+                statement.setObject(i + 1, field.getValue());
+            }
+
+            statement.setObject(fields.size() + 1, id);
+            statement.executeUpdate();
+        } catch (SQLException ex) {
+            Logger.getLogger(Model.class.getName()).log(Level.SEVERE, null, ex);
+        }
     }
 
     public void delete() {
@@ -128,11 +147,11 @@ public abstract class Model {
     }
 
     public static void create(Model model) {
-        model.save();
+        model.create();
     }
 
-    public static void update(Model model) {
-        model.update();
+    public static void save(Model model) {
+        model.save();
     }
 
     public static <M extends Model> M find(int id, Supplier<M> constructor) {
@@ -215,7 +234,7 @@ public abstract class Model {
         return models;
     }
 
-    public Integer getId() {
+    public Object getId() {
         return id;
     }
 

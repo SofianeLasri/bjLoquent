@@ -32,16 +32,15 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- *
  * @author derickfelix
  * @date Feb 24, 2018
  */
 public class Connector {
-    
+
     private static Connector connector;
     private Connection connection;
     private DBConfig config;
-    
+
     private String jdbc_driver;
     private String type;
 
@@ -59,14 +58,28 @@ public class Connector {
         return connection;
     }
 
-    public void execute(String sql) {
+    /**
+     * Execute a statement and return the generated id
+     * @param sql
+     * @return Object id
+     */
+    public Object execute(String sql) {
         open();
+        Object id = null;
+
         try (Statement statement = connection.createStatement()) {
-            statement.execute(sql);
+            statement.execute(sql, Statement.RETURN_GENERATED_KEYS);
+            ResultSet generatedKeys = statement.getGeneratedKeys();
+
+            if (generatedKeys.next()) {
+                id = generatedKeys.getObject(1);
+            }
+
         } catch (SQLException e) {
             Logger.getLogger(getClass().getName()).log(Level.SEVERE, "Failed to execute statement", e);
         }
         close();
+        return id;
     }
 
     public ResultSet executeQuery(String sql) {
@@ -95,56 +108,58 @@ public class Connector {
     }
 
     public Object getResult(ResultSet rs, String type, String column) throws SQLException {
-        switch (type) {
+        switch (type.toLowerCase()) {
             case "int":
-            case "Integer":
+            case "integer":
                 return rs.getInt(column);
             case "double":
-            case "Double":
                 return rs.getDouble(column);
             case "boolean":
-            case "Boolean":
                 return rs.getBoolean(column);
             case "char":
-            case "Character":
+            case "character":
                 return rs.getString(column).charAt(0);
-            case "Array":
+            case "array":
                 return rs.getArray(column);
-            case "String":
+            case "string":
                 return rs.getString(column);
         }
         return null;
     }
-    
+
     public void setDBConfig(DBConfig config) {
         this.config = config;
         setDatabaseType();
     }
-    
+
     public DBConfig getDBConfig() {
         return config;
     }
-    
+
     private void setDatabaseType() {
         switch (config.getDatabaseType()) {
             case MYSQL:
-                jdbc_driver = "com.mysql.jdbc.Driver";
+                jdbc_driver = "com.mysql.cj.jdbc.Driver";
                 type = "jdbc:mysql://";
                 break;
             case POSTGRES:
                 jdbc_driver = "org.postgresql.Driver";
                 type = "jdbc:postgresql://";
                 break;
+            case MARIADB:
+                jdbc_driver = "org.mariadb.jdbc.Driver";
+                type = "jdbc:mariadb://";
+                break;
             default:
                 System.err.println("An error have occurred");
         }
     }
-    
+
     public final static Connector getInstance() {
         if (connector == null) {
             connector = new Connector();
         }
-        
+
         return connector;
     }
 }

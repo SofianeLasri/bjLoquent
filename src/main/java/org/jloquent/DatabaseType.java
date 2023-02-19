@@ -30,5 +30,5 @@ package org.jloquent;
  * @date Mar 4, 2018
  */
 public enum DatabaseType {
-    MYSQL, POSTGRES;  
+    MYSQL, POSTGRES, MARIADB;
 }

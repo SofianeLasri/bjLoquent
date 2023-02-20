@@ -4,12 +4,16 @@ import org.bjloquent.Model;
 
 import java.sql.Timestamp;
 
-public class User extends Model {
+public class ModelWithCustomTableName extends Model {
     private int id;
     private String name;
     private String email;
     private String password;
     private Timestamp joinedDate;
+
+    public ModelWithCustomTableName() {
+        super.tableName = "custom_table_name";
+    }
 
     public int getId() {
         return id;

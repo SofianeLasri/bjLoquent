@@ -38,6 +38,11 @@ import java.util.logging.Logger;
  */
 public abstract class Model {
     protected String primaryKeyName = "id";
+    protected String tableName;
+
+    public Model() {
+        this.tableName = Utility.tableOf(this);
+    }
 
     /**
      * Creates a new entity into a table with the same name of a model child but
@@ -50,7 +55,7 @@ public abstract class Model {
         List<Field> fields = Utility.getFields(methods, this, false, this.primaryKeyName);
         Connector connector = Connector.getInstance();
 
-        StringBuilder sql = new StringBuilder("INSERT INTO " + Utility.tableOf(this) + " (");
+        StringBuilder sql = new StringBuilder("INSERT INTO " + this.tableName + " (");
         Field primaryKey = null;
 
         for (int i = 0; i < fields.size(); i++) {
@@ -119,7 +124,7 @@ public abstract class Model {
         Connector connector = Connector.getInstance();
 
         Field primaryKey = null;
-        StringBuilder preparedSql = new StringBuilder("UPDATE " + Utility.tableOf(this) + " SET ");
+        StringBuilder preparedSql = new StringBuilder("UPDATE " + this.tableName + " SET ");
         for (int i = 0; i < fields.size(); i++) {
             Field field = fields.get(i);
 
@@ -164,7 +169,7 @@ public abstract class Model {
      * Deletes an entity in the model table.
      */
     public void delete() {
-        String sql = "DELETE FROM " + Utility.tableOf(this);
+        String sql = "DELETE FROM " + this.tableName;
         Connector connector = Connector.getInstance();
 
         Method[] methods = this.getClass().getDeclaredMethods();

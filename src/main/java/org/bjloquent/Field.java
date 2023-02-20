@@ -22,13 +22,65 @@
  * THE SOFTWARE.
  */
 
-package org.jloquent;
+package org.bjloquent;
 
 /**
- *
  * @author derickfelix
- * @date Mar 4, 2018
+ * @date Feb 24, 2018
  */
-public enum DatabaseType {
-    MYSQL, POSTGRES, MARIADB;
+public class Field {
+
+    private String name;
+    private Object value;
+    private String type;
+    private boolean isPrimaryKey = false;
+
+    public Field() {
+    }
+
+    public Field(String name, Object value, String type) {
+        this.name = name;
+        this.value = value;
+        this.type = type;
+    }
+
+    public Field(String name, Object value, String type, boolean isPrimaryKey) {
+        this.name = name;
+        this.value = value;
+        this.type = type;
+        this.isPrimaryKey = isPrimaryKey;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public Object getValue() {
+        return value;
+    }
+
+    public void setValue(Object value) {
+        this.value = value;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
+    }
+
+    public boolean isPrimaryKey() {
+        return isPrimaryKey;
+    }
+
+    public void setPrimaryKey(boolean isPrimaryKey) {
+        this.isPrimaryKey = isPrimaryKey;
+    }
+
 }

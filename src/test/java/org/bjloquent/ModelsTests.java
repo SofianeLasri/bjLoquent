@@ -1,7 +1,7 @@
-package org.jloquent;
+package org.bjloquent;
 
-import org.jloquent.models.Player;
-import org.jloquent.models.User;
+import org.bjloquent.models.Player;
+import org.bjloquent.models.User;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -77,17 +77,16 @@ public class ModelsTests {
         String selectUserSql = "SELECT * FROM users WHERE id = " + user.getId();
         ResultSet resultSet = connector.executeQuery(selectUserSql);
 
-        if (resultSet != null) {
-            try {
-                while (resultSet.next()) {
-                    assertEquals(user.getName(), resultSet.getString("name"));
-                    assertEquals(user.getEmail(), resultSet.getString("email"));
-                    assertEquals(user.getPassword(), resultSet.getString("password"));
-                    assertEquals(user.getJoinedDate(), resultSet.getTimestamp("joinedDate"));
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
+        assertNotNull(resultSet);
+        try {
+            while (resultSet.next()) {
+                assertEquals(user.getName(), resultSet.getString("name"));
+                assertEquals(user.getEmail(), resultSet.getString("email"));
+                assertEquals(user.getPassword(), resultSet.getString("password"));
+                assertEquals(user.getJoinedDate(), resultSet.getTimestamp("joinedDate"));
             }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
 
         // Finally we can drop the table
@@ -133,17 +132,16 @@ public class ModelsTests {
         String selectUserSql = "SELECT * FROM players WHERE uuid = '" + player.getUuid() + "'";
         ResultSet resultSet = connector.executeQuery(selectUserSql);
 
-        if (resultSet != null) {
-            try {
-                while (resultSet.next()) {
-                    assertEquals(player.getUuid(), resultSet.getString("uuid"));
-                    assertEquals(player.getName(), resultSet.getString("name"));
-                    assertEquals(player.getJoinedDate(), resultSet.getTimestamp("joinedDate"));
-                    assertEquals(player.getScore(), resultSet.getInt("score"));
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
+        assertNotNull(resultSet);
+        try {
+            while (resultSet.next()) {
+                assertEquals(player.getUuid(), resultSet.getString("uuid"));
+                assertEquals(player.getName(), resultSet.getString("name"));
+                assertEquals(player.getJoinedDate(), resultSet.getTimestamp("joinedDate"));
+                assertEquals(player.getScore(), resultSet.getInt("score"));
             }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
 
         // Finally we can drop the table
@@ -185,17 +183,16 @@ public class ModelsTests {
         String selectUserSql = "SELECT * FROM users WHERE id = " + user.getId();
         ResultSet resultSet = connector.executeQuery(selectUserSql);
 
-        if (resultSet != null) {
-            try {
-                while (resultSet.next()) {
-                    assertEquals(user.getName(), resultSet.getString("name"));
-                    assertEquals(user.getEmail(), resultSet.getString("email"));
-                    assertEquals(user.getPassword(), resultSet.getString("password"));
-                    assertEquals(user.getJoinedDate(), resultSet.getTimestamp("joinedDate"));
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
+        assertNotNull(resultSet);
+        try {
+            while (resultSet.next()) {
+                assertEquals(user.getName(), resultSet.getString("name"));
+                assertEquals(user.getEmail(), resultSet.getString("email"));
+                assertEquals(user.getPassword(), resultSet.getString("password"));
+                assertEquals(user.getJoinedDate(), resultSet.getTimestamp("joinedDate"));
             }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
 
         // Finally we can drop the table
@@ -246,21 +243,63 @@ public class ModelsTests {
         String selectUserSql = "SELECT * FROM players WHERE uuid = '" + player.getUuid() + "'";
         ResultSet resultSet = connector.executeQuery(selectUserSql);
 
-        if (resultSet != null) {
-            try {
-                while (resultSet.next()) {
-                    assertEquals(player.getUuid(), resultSet.getString("uuid"));
-                    assertEquals(player.getName(), resultSet.getString("name"));
-                    assertEquals(player.getJoinedDate(), resultSet.getTimestamp("joinedDate"));
-                    assertEquals(player.getScore(), resultSet.getInt("score"));
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
+        assertNotNull(resultSet);
+        try {
+            while (resultSet.next()) {
+                assertEquals(player.getUuid(), resultSet.getString("uuid"));
+                assertEquals(player.getName(), resultSet.getString("name"));
+                assertEquals(player.getJoinedDate(), resultSet.getTimestamp("joinedDate"));
+                assertEquals(player.getScore(), resultSet.getInt("score"));
             }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
 
         // Finally we can drop the table
         String dropUserTableSql = "DROP TABLE players";
+        connector.execute(dropUserTableSql);
+
+        connector.close();
+    }
+
+    @org.junit.jupiter.api.Test
+    public void testDeleteIdIntegerPrimaryKey() {
+        // bjLoquent don't have yet a way to create a table
+        // so we need to create it manually
+        String createUserTableSql = "CREATE TABLE IF NOT EXISTS users (id INT NOT NULL AUTO_INCREMENT, name VARCHAR(255), email VARCHAR(255), password VARCHAR(255), joinedDate TIMESTAMP, PRIMARY KEY (id))";
+        Connector connector = Connector.getInstance();
+        connector.setDBConfig(dbConfig);
+        connector.execute(createUserTableSql);
+
+        // Now we can insert a new user
+        User user = new User();
+        user.setName("Gordon Freeman");
+        user.setEmail("gordon.freeman@blackmesa.us");
+        user.setPassword("123456");
+
+        Timestamp timestamp = new Timestamp(System.currentTimeMillis());
+        // We need to round the timestamp to seconds because it seems that the milliseconds are not supported
+        timestamp.setNanos(0);
+        user.setJoinedDate(timestamp);
+
+        user.create();
+
+        // Now we can delete the user
+        user.delete();
+
+        // Now we can check if the user was deleted
+        String selectUserSql = "SELECT * FROM users WHERE id = " + user.getId();
+        ResultSet resultSet = connector.executeQuery(selectUserSql);
+
+        assertNotNull(resultSet);
+        try {
+            assertFalse(resultSet.next());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        // Finally we can drop the table
+        String dropUserTableSql = "DROP TABLE users";
         connector.execute(dropUserTableSql);
 
         connector.close();

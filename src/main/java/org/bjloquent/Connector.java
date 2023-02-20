@@ -21,7 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package org.jloquent;
+package org.bjloquent;
 
 import java.sql.Connection;
 import java.sql.DriverManager;

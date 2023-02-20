@@ -21,25 +21,20 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package org.jloquent;
+
+package org.bjloquent.schema;
 
 /**
  *
  * @author derickfelix
- * @date Mar 4, 2018
+ * @date Mar 18, 2018
  */
-public interface DBConfig {
+public interface Migration {
 
-    public DatabaseType getDatabaseType();
-
-    public String getHostName();
-
-    public String getPortNumber();
-
-    public String getDatabaseName();
-
-    public String getUsername();
-
-    public String getPassword();
-
+    public void up(Blueprint table);
+    
+    public void down(Blueprint table);
+    
+    public String getTableName();
+    
 }

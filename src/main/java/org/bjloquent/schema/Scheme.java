@@ -22,65 +22,21 @@
  * THE SOFTWARE.
  */
 
-package org.jloquent;
+package org.bjloquent.schema;
 
 /**
+ *
  * @author derickfelix
- * @date Feb 24, 2018
+ * @date Mar 18, 2018
  */
-public class Field {
+public class Scheme {
 
-    private String name;
-    private Object value;
-    private String type;
-    private boolean isPrimaryKey = false;
-
-    public Field() {
+    public static void create(String table) {
+        
     }
-
-    public Field(String name, Object value, String type) {
-        this.name = name;
-        this.value = value;
-        this.type = type;
+    
+    public static void dropIfExists(String table) {
+        
     }
-
-    public Field(String name, Object value, String type, boolean isPrimaryKey) {
-        this.name = name;
-        this.value = value;
-        this.type = type;
-        this.isPrimaryKey = isPrimaryKey;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public Object getValue() {
-        return value;
-    }
-
-    public void setValue(Object value) {
-        this.value = value;
-    }
-
-    public String getType() {
-        return type;
-    }
-
-    public void setType(String type) {
-        this.type = type;
-    }
-
-    public boolean isPrimaryKey() {
-        return isPrimaryKey;
-    }
-
-    public void setPrimaryKey(boolean isPrimaryKey) {
-        this.isPrimaryKey = isPrimaryKey;
-    }
-
+    
 }

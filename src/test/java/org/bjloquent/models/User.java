@@ -1,6 +1,6 @@
-package org.jloquent.models;
+package org.bjloquent.models;
 
-import org.jloquent.Model;
+import org.bjloquent.Model;
 
 import java.sql.Timestamp;
 

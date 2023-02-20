@@ -21,35 +21,25 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-
-package org.jloquent.schema;
+package org.bjloquent;
 
 /**
  *
  * @author derickfelix
- * @date Mar 18, 2018
+ * @date Mar 4, 2018
  */
-public class Blueprint {
+public interface DBConfig {
 
-    
-    public void increments(String column) {
-    //    this.addColumn("unsigned integer",column)
-    }
-    
-    public void string(String column) {
-      //  this.addColumn("string",column)
-    }
-    
-    public void text(String column) {
-       //this.addColumn("text",column) 
-    }
-    
-    public void timestamps() {
-       //this.timestamps();
-    }
-    
-    public void dropIfExists() {
-        
-    }
-    
+    public DatabaseType getDatabaseType();
+
+    public String getHostName();
+
+    public String getPortNumber();
+
+    public String getDatabaseName();
+
+    public String getUsername();
+
+    public String getPassword();
+
 }

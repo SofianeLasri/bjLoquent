@@ -22,21 +22,13 @@
  * THE SOFTWARE.
  */
 
-package org.jloquent.schema;
+package org.bjloquent;
 
 /**
  *
  * @author derickfelix
- * @date Mar 18, 2018
+ * @date Mar 4, 2018
  */
-public class Scheme {
-
-    public static void create(String table) {
-        
-    }
-    
-    public static void dropIfExists(String table) {
-        
-    }
-    
+public enum DatabaseType {
+    MYSQL, POSTGRES, MARIADB;
 }

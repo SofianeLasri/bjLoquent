@@ -21,16 +21,14 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package org.jloquent;
+package org.bjloquent;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -39,17 +37,13 @@ import java.util.logging.Logger;
  * @date Feb 24, 2018
  */
 public abstract class Model {
-    private Object id;
     protected String primaryKeyName = "id";
-    protected final String keyType = "int";
 
     /**
      * Creates a new entity into a table with the same name of a model child but
      * in plural, e.g. a model <code>class Person extends Model</code> will have
      * all of its fields persisted into a table called <code>persons</code>.
      * The <code>id</code> field will be set to the last inserted id if it not null.
-     *
-     * @return
      */
     public void create() {
         Method[] methods = this.getClass().getDeclaredMethods();
@@ -70,6 +64,11 @@ public abstract class Model {
             if ((i + 1) != fields.size()) {
                 sql.append(", ");
             }
+        }
+
+        if (primaryKey == null) {
+            Logger.getLogger(getClass().getName()).log(Level.SEVERE, "id cannot be null");
+            return;
         }
 
         sql.append(") VALUES (");
@@ -115,8 +114,8 @@ public abstract class Model {
      * all of its fields updated, in a table called <code>persons</code>.
      */
     public void save() {
-        Method[] mt = this.getClass().getDeclaredMethods();
-        List<Field> fields = Utility.getFields(mt, this, false, this.primaryKeyName);
+        Method[] methods = this.getClass().getDeclaredMethods();
+        List<Field> fields = Utility.getFields(methods, this, false, this.primaryKeyName);
         Connector connector = Connector.getInstance();
 
         Field primaryKey = null;
@@ -124,7 +123,7 @@ public abstract class Model {
         for (int i = 0; i < fields.size(); i++) {
             Field field = fields.get(i);
 
-            if(!field.isPrimaryKey()) {
+            if (!field.isPrimaryKey()) {
                 preparedSql.append(field.getName()).append(" = ?");
 
                 if ((i + 1) < fields.size()) {
@@ -140,7 +139,7 @@ public abstract class Model {
             return;
         }
 
-        preparedSql.append(" WHERE " + this.primaryKeyName + " = ?");
+        preparedSql.append(" WHERE ").append(this.primaryKeyName).append(" = ?");
 
         String sql = preparedSql.toString();
 
@@ -161,107 +160,35 @@ public abstract class Model {
         }
     }
 
+    /**
+     * Deletes an entity in the model table.
+     */
     public void delete() {
         String sql = "DELETE FROM " + Utility.tableOf(this);
         Connector connector = Connector.getInstance();
 
-        if (id == null) {
+        Method[] methods = this.getClass().getDeclaredMethods();
+        List<Field> fields = Utility.getFields(methods, this, false, this.primaryKeyName);
+        Field primaryKey = null;
+        for (Field field : fields) {
+            if (field.isPrimaryKey()) {
+                primaryKey = field;
+                break;
+            }
+        }
+
+        if (primaryKey == null) {
             Logger.getLogger(getClass().getName()).log(Level.SEVERE, "id cannot be null");
             return;
         }
 
-        sql += " WHERE id = " + id;
-
-        connector.execute(sql);
-        System.out.println(sql);
-    }
-
-    public static void create(Model model) {
-        model.create();
-    }
-
-    public static void save(Model model) {
-        model.save();
-    }
-
-    /*public static <M extends Model> M find(int id, Supplier<M> constructor) {
-        M instance = constructor.get();
-        Method[] methods = instance.getClass().getDeclaredMethods();
-        List<Method> setters = new ArrayList<>();
-        List<Field> fields = Utility.getFields(methods, instance, true, instance.primaryKeyName);
-        Connector connector = Connector.getInstance();
-
-        for (Method m : methods) {
-            if (m.getName().contains("set")) {
-                setters.add(m);
-            }
-        }
-
-        String sql = "SELECT * FROM " + Utility.tableOf(instance) + " WHERE id = " + id;
-
+        sql += " WHERE " + primaryKeyName + " = ?";
         try {
-            ResultSet rs = connector.executeQuery(sql);
-
-            while (rs.next()) {
-                instance.setId(id);
-                for (int i = 0; i < setters.size(); i++) {
-                    Method tempMethod = setters.get(i);
-                    for (int j = 0; j < fields.size(); j++) {
-                        Field tempField = fields.get(j);
-                        if (tempMethod.getName().toLowerCase().contains(tempField.getName())) {
-                            tempMethod.invoke(instance, connector.getResult(rs, tempField.getType(), tempField.getName()));
-                        }
-                    }
-                }
-            }
-
-        } catch (SQLException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
-            Logger.getLogger(Model.class.getName()).log(Level.SEVERE, "Failed execute query", e);
+            PreparedStatement statement = connector.open().prepareStatement(sql);
+            statement.setObject(1, primaryKey.getValue());
+            statement.executeUpdate();
+        } catch (SQLException ex) {
+            Logger.getLogger(Model.class.getName()).log(Level.SEVERE, null, ex);
         }
-        System.out.println(sql);
-
-        return instance;
     }
-
-    public static <M extends Model> List<M> all(Supplier<M> constructor) {
-        M instance = constructor.get();
-        List<M> models = new ArrayList<>();
-        Method[] methods = instance.getClass().getDeclaredMethods();
-        List<Method> setters = new ArrayList<>();
-        List<Field> fields = Utility.getFields(methods, instance, true, instance.primaryKeyName);
-        Connector connector = Connector.getInstance();
-
-        for (Method m : methods) {
-            if (m.getName().contains("set")) {
-                setters.add(m);
-            }
-        }
-
-        String sql = "SELECT * FROM " + Utility.tableOf(instance);
-        try {
-            ResultSet rs = connector.executeQuery(sql);
-
-            while (rs.next()) {
-                M model = constructor.get();
-                model.setId(rs.getInt("id"));
-
-                for (int i = 0; i < setters.size(); i++) {
-                    Method tempMethod = setters.get(i);
-                    for (int j = 0; j < fields.size(); j++) {
-                        Field tempField = fields.get(j);
-                        if (tempMethod.getName().toLowerCase().contains(tempField.getName())) {
-                            tempMethod.invoke(model, connector.getResult(rs, tempField.getType(), tempField.getName()));
-                        }
-                    }
-                }
-                models.add(model);
-            }
-        } catch (SQLException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
-            Logger.getLogger(Model.class.getName()).log(Level.SEVERE, "Failed to execute query", e);
-        }
-        System.out.println(sql);
-
-        return models;
-    }*/
-
 }

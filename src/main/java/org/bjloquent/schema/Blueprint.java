@@ -22,19 +22,34 @@
  * THE SOFTWARE.
  */
 
-package org.jloquent.schema;
+package org.bjloquent.schema;
 
 /**
  *
  * @author derickfelix
  * @date Mar 18, 2018
  */
-public interface Migration {
+public class Blueprint {
 
-    public void up(Blueprint table);
     
-    public void down(Blueprint table);
+    public void increments(String column) {
+    //    this.addColumn("unsigned integer",column)
+    }
     
-    public String getTableName();
+    public void string(String column) {
+      //  this.addColumn("string",column)
+    }
+    
+    public void text(String column) {
+       //this.addColumn("text",column) 
+    }
+    
+    public void timestamps() {
+       //this.timestamps();
+    }
+    
+    public void dropIfExists() {
+        
+    }
     
 }

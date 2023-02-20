@@ -1,3 +1,9 @@
+<p align="center">
+  <img src="art/logo.png" alt="bjLoquent">
+</p>
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 ## Better jLoquent
 A Java ORM based on [jLoquent](https://github.com/derickfelix/jloquent), inspired by [Laravel Eloquent](https://laravel.com/docs/eloquent).
 

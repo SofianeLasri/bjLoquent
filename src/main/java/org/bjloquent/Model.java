@@ -196,4 +196,35 @@ public abstract class Model {
             Logger.getLogger(Model.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
+
+    /**
+     * Finds an entity in the model table.
+     * @param primaryKeyValue The id of the entity
+     * @return The entity
+     */
+    public Model find(Object primaryKeyValue) {
+        String sql = "SELECT * FROM " + this.tableName + " WHERE " + this.primaryKeyName + " = ?";
+        Connector connector = Connector.getInstance();
+        try {
+            PreparedStatement statement = connector.open().prepareStatement(sql);
+            statement.setObject(1, primaryKeyValue);
+            ResultSet rs = statement.executeQuery();
+            if (rs.next()) {
+                Method[] methods = this.getClass().getDeclaredMethods();
+                List<Field> fields = Utility.getFields(methods, this, true, this.primaryKeyName);
+                for (Field field : fields) {
+                    String setMethod = "set" + field.getName().substring(0, 1).toUpperCase()
+                            + field.getName().substring(1);
+                    this.getClass().getDeclaredMethod(
+                            setMethod, field.getTypeClass()).invoke(this, rs.getObject(field.getName())
+                    );
+                }
+            }
+        } catch (SQLException | NoSuchMethodException | SecurityException | IllegalAccessException |
+                 IllegalArgumentException | InvocationTargetException ex) {
+            Logger.getLogger(Model.class.getName()).log(Level.SEVERE, null, ex);
+        }
+
+        return this;
+    }
 }

@@ -33,21 +33,24 @@ public class Field {
     private String name;
     private Object value;
     private String type;
+    private Class<?> typeClass;
     private boolean isPrimaryKey = false;
 
     public Field() {
     }
 
-    public Field(String name, Object value, String type) {
+    public Field(String name, Object value, Class<?> typeClass) {
         this.name = name;
         this.value = value;
-        this.type = type;
+        this.typeClass = typeClass;
+        this.type = typeClass.getSimpleName();
     }
 
-    public Field(String name, Object value, String type, boolean isPrimaryKey) {
+    public Field(String name, Object value, Class<?> typeClass, boolean isPrimaryKey) {
         this.name = name;
         this.value = value;
-        this.type = type;
+        this.typeClass = typeClass;
+        this.type = typeClass.getSimpleName();
         this.isPrimaryKey = isPrimaryKey;
     }
 
@@ -73,6 +76,14 @@ public class Field {
 
     public void setType(String type) {
         this.type = type;
+    }
+
+    public Class<?> getTypeClass() {
+        return typeClass;
+    }
+
+    public void setTypeClass(Class<?> typeClass) {
+        this.typeClass = typeClass;
     }
 
     public boolean isPrimaryKey() {

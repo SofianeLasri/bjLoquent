@@ -60,9 +60,9 @@ public class Utility {
 
                     if (request || value != null) {
                         if (name.equals(primaryKeyName)) {
-                            fields.add(0, new Field(name, value, type.getSimpleName(), true));
+                            fields.add(0, new Field(name, value, type, true));
                         } else {
-                            fields.add(new Field(name, value, type.getSimpleName()));
+                            fields.add(new Field(name, value, type));
                         }
                     }
                 }

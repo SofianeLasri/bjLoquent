@@ -110,7 +110,11 @@ public abstract class Model {
                 }
             }
         } catch (SQLException | InvocationTargetException | IllegalAccessException | NoSuchMethodException e) {
-            Logger.getLogger(Model.class.getName()).log(Level.SEVERE, null, e);
+            Logger.getLogger(Model.class.getName()).log(
+                    Level.SEVERE,
+                    "Error while creating a new entity in the database",
+                    e
+            );
         }
     }
 
@@ -194,7 +198,11 @@ public abstract class Model {
             statement.setObject(1, primaryKey.getValue());
             statement.executeUpdate();
         } catch (SQLException ex) {
-            Logger.getLogger(Model.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(Model.class.getName()).log(
+                    Level.SEVERE,
+                    "Could not delete entity with id " + primaryKey.getValue() + " from table " + tableName,
+                    ex
+            );
         }
     }
 
@@ -224,16 +232,21 @@ public abstract class Model {
             }
         } catch (SQLException | NoSuchMethodException | SecurityException | IllegalAccessException |
                  IllegalArgumentException | InvocationTargetException ex) {
-            Logger.getLogger(Model.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(Model.class.getName()).log(
+                    Level.SEVERE,
+                    "Could not find entity with id " + primaryKeyValue,
+                    ex
+            );
         }
     }
 
     /**
      * Finds all entities in the model table that match the given condition.
      * TODO: Make this static
-     * @param column The column to check
+     *
+     * @param column   The column to check
      * @param operator The operator to use (e.g. =, >, <, etc.)
-     * @param value The value to check against
+     * @param value    The value to check against
      * @return A list of models that match the condition
      */
     public List<Model> where(String column, String operator, Object value) {
@@ -260,7 +273,11 @@ public abstract class Model {
             }
         } catch (SQLException | NoSuchMethodException | SecurityException | IllegalAccessException |
                  IllegalArgumentException | InvocationTargetException | InstantiationException ex) {
-            Logger.getLogger(Model.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(Model.class.getName()).log(
+                    Level.SEVERE,
+                    "Error while trying to find all entities in the model table that match the given condition. SQL: " + sql,
+                    ex
+            );
         }
         return models;
     }
@@ -268,8 +285,9 @@ public abstract class Model {
     /**
      * Helper method for where(String, String, Object)
      * TODO: Make this static
+     *
      * @param column The column to check
-     * @param value The value to check against
+     * @param value  The value to check against
      * @return A list of models that match the condition
      */
     public List<Model> where(String column, Object value) {
@@ -279,14 +297,18 @@ public abstract class Model {
     /**
      * Finds all entities in the model table that match the given conditions.
      * TODO: Make this static
-     * @param columns The columns to check
+     *
+     * @param columns   The columns to check
      * @param operators The operators to use (e.g. =, >, <, etc.)
-     * @param values The values to check against
+     * @param values    The values to check against
      * @return A list of models that match the conditions
      */
     public List<Model> multipleWhere(String[] columns, String[] operators, Object[] values) {
         if (columns.length != operators.length || columns.length != values.length) {
-            Logger.getLogger(getClass().getName()).log(Level.SEVERE, "columns, operators and values must have the same length");
+            Logger.getLogger(getClass().getName()).log(
+                    Level.SEVERE,
+                    "columns, operators and values must have the same length"
+            );
             return null;
         }
 
@@ -323,7 +345,11 @@ public abstract class Model {
             }
         } catch (SQLException | NoSuchMethodException | SecurityException | IllegalAccessException |
                  IllegalArgumentException | InvocationTargetException | InstantiationException ex) {
-            Logger.getLogger(Model.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(Model.class.getName()).log(
+                    Level.SEVERE,
+                    "Error while executing multipleWhere query. SQL: " + sql.toString(),
+                    ex
+            );
         }
         return models;
     }

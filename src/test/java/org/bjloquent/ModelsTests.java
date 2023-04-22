@@ -7,6 +7,7 @@ import org.bjloquent.models.User;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.Timestamp;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -408,6 +409,133 @@ public class ModelsTests {
         assertEquals(secondUser.getEmail(), secondUserFound.getEmail());
         assertEquals(secondUser.getPassword(), secondUserFound.getPassword());
         assertEquals(secondUser.getJoinedDate(), secondUserFound.getJoinedDate());
+
+        // Finally we can drop the table
+        String dropUserTableSql = "DROP TABLE users";
+        connector.execute(dropUserTableSql);
+
+        connector.close();
+    }
+
+    @org.junit.jupiter.api.Test
+    public void testWhereSingleCondition() {
+        // bjLoquent don't have yet a way to create a table
+        // so we need to create it manually
+        String createUserTableSql = "CREATE TABLE IF NOT EXISTS users (id INT NOT NULL AUTO_INCREMENT, name VARCHAR(255), email VARCHAR(255), password VARCHAR(255), joinedDate TIMESTAMP, PRIMARY KEY (id))";
+        Connector connector = Connector.getInstance();
+        connector.setDBConfig(dbConfig);
+        connector.execute(createUserTableSql);
+
+        // Now we can insert two new user
+        User firstUser = new User();
+        firstUser.setName("Gordon Freeman");
+        firstUser.setEmail("gordon.freeman@blackmesa.us");
+        firstUser.setPassword("123456");
+
+        Timestamp timestamp = new Timestamp(System.currentTimeMillis());
+        // We need to round the timestamp to seconds because it seems that the milliseconds are not supported
+        timestamp.setNanos(0);
+        firstUser.setJoinedDate(timestamp);
+
+        firstUser.create();
+
+        User secondUser = new User();
+        secondUser.setName("Alyx Vance");
+        secondUser.setEmail("alyx.vance@blackmesa.us");
+        secondUser.setPassword("654321");
+        secondUser.setJoinedDate(timestamp);
+
+        secondUser.create();
+
+        // Now we can check if the user was inserted
+        User dummyUserInstance = new User();
+        List<Model> users = dummyUserInstance.where("name", "Gordon Freeman");
+
+        assertEquals(1, users.size());
+
+        User firstUserFound = (User) users.get(0);
+        assertEquals(firstUser.getId(), firstUserFound.getId());
+        assertEquals(firstUser.getName(), firstUserFound.getName());
+
+        // Now we want to find all the users that have "Vance" in their name
+        dummyUserInstance = new User();
+        users = dummyUserInstance.where("name", "LIKE", "%Vance%");
+        assertEquals(1, users.size());
+
+        User secondUserFound = (User) users.get(0);
+        assertEquals(secondUser.getId(), secondUserFound.getId());
+        assertEquals(secondUser.getName(), secondUserFound.getName());
+
+        // Finally we can drop the table
+        String dropUserTableSql = "DROP TABLE users";
+        connector.execute(dropUserTableSql);
+
+        connector.close();
+    }
+
+    @org.junit.jupiter.api.Test
+    public void testWhereMultipleConditions() {
+        // bjLoquent don't have yet a way to create a table
+        // so we need to create it manually
+        String createUserTableSql = "CREATE TABLE IF NOT EXISTS users (id INT NOT NULL AUTO_INCREMENT, name VARCHAR(255), email VARCHAR(255), password VARCHAR(255), joinedDate TIMESTAMP, PRIMARY KEY (id))";
+        Connector connector = Connector.getInstance();
+        connector.setDBConfig(dbConfig);
+        connector.execute(createUserTableSql);
+
+        // Now we can insert two new user
+        User firstUser = new User();
+        firstUser.setName("Gordon Freeman");
+        firstUser.setEmail("gordon.freeman@blackmesa.us");
+        firstUser.setPassword("123456");
+
+        Timestamp timestamp = new Timestamp(System.currentTimeMillis());
+        // We need to round the timestamp to seconds because it seems that the milliseconds are not supported
+        timestamp.setNanos(0);
+        firstUser.setJoinedDate(timestamp);
+
+        firstUser.create();
+
+        User secondUser = new User();
+        secondUser.setName("Alyx Vance");
+        secondUser.setEmail("alyx.vance@blackmesa.us");
+        secondUser.setPassword("654321");
+        secondUser.setJoinedDate(timestamp);
+
+        secondUser.create();
+
+        User thirdUser = new User();
+        thirdUser.setName("Eli Vance");
+        thirdUser.setEmail("eli.vance@blackmesa.us");
+        thirdUser.setPassword("hackme");
+        thirdUser.setJoinedDate(timestamp);
+
+        thirdUser.create();
+
+        User fourthUser = new User();
+        fourthUser.setName("Barney Calhoun");
+        fourthUser.setEmail("barney.clahourn@blackmesa.us");
+        fourthUser.setPassword("aGoodBeer");
+        fourthUser.setJoinedDate(timestamp);
+
+        fourthUser.create();
+
+        // Now we want to find all the users that have "Vance" in their name and that works at Black Mesa
+        User dummyUserInstance = new User();
+        List<Model> users = dummyUserInstance.multipleWhere(
+                new String[]{"name", "email"},
+                new String[]{"LIKE", "LIKE"},
+                new String[]{"%Vance%", "%blackmesa%"}
+        );
+
+        assertEquals(2, users.size());
+
+        User firstUserFound = (User) users.get(0);
+        assertEquals(secondUser.getId(), firstUserFound.getId());
+        assertEquals(secondUser.getName(), firstUserFound.getName());
+
+        User secondUserFound = (User) users.get(1);
+        assertEquals(thirdUser.getId(), secondUserFound.getId());
+        assertEquals(thirdUser.getName(), secondUserFound.getName());
 
         // Finally we can drop the table
         String dropUserTableSql = "DROP TABLE users";

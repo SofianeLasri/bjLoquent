@@ -243,15 +243,7 @@ public abstract class Model {
             ResultSet rs = statement.executeQuery();
 
             if (rs.next()) {
-                Method[] methods = targetClass.getDeclaredMethods();
-                List<Field> fields = Utility.getFields(methods, targetModel, true, primaryKeyName);
-                for (Field field : fields) {
-                    String setMethod = "set" + field.getName().substring(0, 1).toUpperCase()
-                            + field.getName().substring(1);
-                    targetClass.getDeclaredMethod(
-                            setMethod, field.getTypeClass()).invoke(targetModel, rs.getObject(field.getName())
-                    );
-                }
+                targetModel.setModelFields(rs);
             }
         } catch (SQLException | NoSuchMethodException | SecurityException | IllegalAccessException |
                  IllegalArgumentException | InvocationTargetException ex) {
@@ -320,27 +312,14 @@ public abstract class Model {
 
             while (rs.next()) {
                 SubModel model = targetClass.getDeclaredConstructor().newInstance();
-                Method[] methods = model.getClass().getDeclaredMethods();
-                List<Field> fields = Utility.getFields(methods, model, true, primaryKeyName);
-
-                for (Field field : fields) {
-                    String setMethod = "set" + field.getName().substring(0, 1).toUpperCase()
-                            + field.getName().substring(1);
-                    model.getClass().getDeclaredMethod(
-                            setMethod,
-                            field.getTypeClass()
-                    ).invoke(
-                            model,
-                            rs.getObject(field.getName())
-                    );
-                }
+                model.setModelFields(rs);
                 models.add(model);
             }
         } catch (SQLException | NoSuchMethodException | SecurityException | IllegalAccessException |
-                 IllegalArgumentException | InvocationTargetException e) {
+                 InvocationTargetException e) {
             Logger.getLogger(targetClass.getName()).log(
                     Level.SEVERE,
-                    "Error while executing multipleWhere query.",
+                    "Error while executing where query.",
                     e
             );
         } catch (InstantiationException e) {
@@ -373,12 +352,13 @@ public abstract class Model {
 
     /**
      * Helper method for where() that only takes one condition
+     *
      * @param targetClass The class of the model
-     * @param column The column to check
-     * @param operator The operator to use (e.g. =, >, <, etc.)
-     * @param value The value to check against
+     * @param column      The column to check
+     * @param operator    The operator to use (e.g. =, >, <, etc.)
+     * @param value       The value to check against
+     * @param <SubModel>  The model class
      * @return A list of models that match the conditions
-     * @param <SubModel> The model class
      */
     public static <SubModel extends Model> List<SubModel> where(
             Class<SubModel> targetClass,
@@ -387,5 +367,69 @@ public abstract class Model {
             Object value
     ) {
         return where(targetClass, new String[]{column}, new String[]{operator}, new Object[]{value});
+    }
+
+    /**
+     * Sets the model fields from a result set
+     * @param rs The result set
+     */
+    public void setModelFields(ResultSet rs) {
+        Method[] methods = this.getClass().getDeclaredMethods();
+        List<Field> fields = Utility.getFields(methods, this, true, primaryKeyName);
+
+        for (Field field : fields) {
+            String setMethod = "set" + field.getName().substring(0, 1).toUpperCase()
+                    + field.getName().substring(1);
+
+            // We retrieve the object from the result set
+            Object resultSetObject;
+            try {
+                resultSetObject = rs.getObject(field.getName());
+            } catch (SQLException e) {
+                Logger.getLogger(getClass().getName()).log(
+                        Level.SEVERE,
+                        "Could not get object " + field.getName() + " from result set",
+                        e
+                );
+                continue;
+            }
+
+            try {
+                // We invoke the setter method with the object from the result set
+                this.getClass().getDeclaredMethod(
+                        setMethod,
+                        field.getTypeClass()
+                ).invoke(
+                        this,
+                        resultSetObject
+                );
+            } catch (NoSuchMethodException e) {
+                Logger.getLogger(getClass().getName()).log(
+                        Level.SEVERE,
+                        "Could not find method " + setMethod + " in class " + getClass().getName(),
+                        e
+                );
+            } catch (IllegalAccessException e) {
+                Logger.getLogger(getClass().getName()).log(
+                        Level.SEVERE,
+                        "Could not access method " + setMethod + " in class " + getClass().getName(),
+                        e
+                );
+            } catch (IllegalArgumentException e) {
+                Logger.getLogger(getClass().getName()).log(
+                        Level.SEVERE,
+                        "Illegal argument for method " + setMethod + " in class " + getClass().getName() +
+                                ". Expected " + field.getTypeClass().getName() + " but got " +
+                                resultSetObject,
+                        e
+                );
+            } catch (InvocationTargetException e) {
+                Logger.getLogger(getClass().getName()).log(
+                        Level.SEVERE,
+                        "Could not invoke method " + setMethod + " in class " + getClass().getName(),
+                        e
+                );
+            }
+        }
     }
 }

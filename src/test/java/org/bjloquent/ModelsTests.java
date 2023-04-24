@@ -392,8 +392,7 @@ public class ModelsTests {
         secondUser.create();
 
         // Now we can check if the user was inserted
-        User firstUserFound = new User();
-        firstUserFound.find(firstUser.getId());
+        User firstUserFound = User.find(User.class, firstUser.getId());
 
         assertEquals(firstUser.getId(), firstUserFound.getId());
         assertEquals(firstUser.getName(), firstUserFound.getName());
@@ -401,8 +400,7 @@ public class ModelsTests {
         assertEquals(firstUser.getPassword(), firstUserFound.getPassword());
         assertEquals(firstUser.getJoinedDate(), firstUserFound.getJoinedDate());
 
-        User secondUserFound = new User();
-        secondUserFound.find(secondUser.getId());
+        User secondUserFound = User.find(User.class, secondUser.getId());
 
         assertEquals(secondUser.getId(), secondUserFound.getId());
         assertEquals(secondUser.getName(), secondUserFound.getName());
@@ -448,8 +446,7 @@ public class ModelsTests {
         secondUser.create();
 
         // Now we can check if the user was inserted
-        User dummyUserInstance = new User();
-        List<Model> users = dummyUserInstance.where("name", "Gordon Freeman");
+        List<User> users = User.where(User.class, "name", "Gordon Freeman");
 
         assertEquals(1, users.size());
 
@@ -458,8 +455,7 @@ public class ModelsTests {
         assertEquals(firstUser.getName(), firstUserFound.getName());
 
         // Now we want to find all the users that have "Vance" in their name
-        dummyUserInstance = new User();
-        users = dummyUserInstance.where("name", "LIKE", "%Vance%");
+        users = User.where(User.class, "name", "LIKE", "%Vance%");
         assertEquals(1, users.size());
 
         User secondUserFound = (User) users.get(0);
@@ -520,8 +516,8 @@ public class ModelsTests {
         fourthUser.create();
 
         // Now we want to find all the users that have "Vance" in their name and that works at Black Mesa
-        User dummyUserInstance = new User();
-        List<Model> users = dummyUserInstance.multipleWhere(
+        List<User> users = User.where(
+                User.class,
                 new String[]{"name", "email"},
                 new String[]{"LIKE", "LIKE"},
                 new String[]{"%Vance%", "%blackmesa%"}

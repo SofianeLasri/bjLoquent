@@ -46,6 +46,20 @@ public abstract class Model {
     }
 
     /**
+     * @return the primaryKeyName
+     */
+    public String getPrimaryKeyName() {
+        return primaryKeyName;
+    }
+
+    /**
+     * @return the tableName
+     */
+    public String getTableName() {
+        return tableName;
+    }
+
+    /**
      * Creates a new entity into a table with the same name of a model child but
      * in plural, e.g. a model <code>class Person extends Model</code> will have
      * all of its fields persisted into a table called <code>persons</code>.
@@ -207,150 +221,171 @@ public abstract class Model {
     }
 
     /**
-     * Finds an entity in the model table.
-     * TODO: Make this static
+     * Finds an entity in the model table
      *
-     * @param primaryKeyValue The id of the entity
+     * @param targetClass     The class of the model
+     * @param primaryKeyValue The value of the primary key
+     * @param <SubModel>      The model class
+     * @return The model instance
      */
-    public void find(Object primaryKeyValue) {
-        String sql = "SELECT * FROM " + tableName + " WHERE " + primaryKeyName + " = ?";
-        Connector connector = Connector.getInstance();
+    public static <SubModel extends Model> SubModel find(Class<SubModel> targetClass, Object primaryKeyValue) {
+        SubModel targetModel = null;
         try {
+            targetModel = targetClass.getDeclaredConstructor().newInstance();
+            String tableName = targetModel.getTableName();
+            String primaryKeyName = targetModel.getPrimaryKeyName();
+
+            String sql = "SELECT * FROM " + tableName + " WHERE " + primaryKeyName + " = ?";
+            Connector connector = Connector.getInstance();
+
             PreparedStatement statement = connector.open().prepareStatement(sql);
             statement.setObject(1, primaryKeyValue);
             ResultSet rs = statement.executeQuery();
+
             if (rs.next()) {
-                Method[] methods = this.getClass().getDeclaredMethods();
-                List<Field> fields = Utility.getFields(methods, this, true, primaryKeyName);
+                Method[] methods = targetClass.getDeclaredMethods();
+                List<Field> fields = Utility.getFields(methods, targetModel, true, primaryKeyName);
                 for (Field field : fields) {
                     String setMethod = "set" + field.getName().substring(0, 1).toUpperCase()
                             + field.getName().substring(1);
-                    this.getClass().getDeclaredMethod(
-                            setMethod, field.getTypeClass()).invoke(this, rs.getObject(field.getName())
+                    targetClass.getDeclaredMethod(
+                            setMethod, field.getTypeClass()).invoke(targetModel, rs.getObject(field.getName())
                     );
                 }
             }
         } catch (SQLException | NoSuchMethodException | SecurityException | IllegalAccessException |
                  IllegalArgumentException | InvocationTargetException ex) {
-            Logger.getLogger(Model.class.getName()).log(
+            Logger.getLogger(targetClass.getName()).log(
                     Level.SEVERE,
                     "Could not find entity with id " + primaryKeyValue,
                     ex
             );
-        }
-    }
-
-    /**
-     * Finds all entities in the model table that match the given condition.
-     * TODO: Make this static
-     *
-     * @param column   The column to check
-     * @param operator The operator to use (e.g. =, >, <, etc.)
-     * @param value    The value to check against
-     * @return A list of models that match the condition
-     */
-    public List<Model> where(String column, String operator, Object value) {
-        String sql = "SELECT * FROM " + tableName + " WHERE " + column + " " + operator + " ?";
-        Connector connector = Connector.getInstance();
-
-        List<Model> models = new ArrayList<>();
-        try {
-            PreparedStatement statement = connector.open().prepareStatement(sql);
-            statement.setObject(1, value);
-            ResultSet rs = statement.executeQuery();
-            while (rs.next()) {
-                Model model = this.getClass().getDeclaredConstructor().newInstance();
-                Method[] methods = model.getClass().getDeclaredMethods();
-                List<Field> fields = Utility.getFields(methods, model, true, primaryKeyName);
-                for (Field field : fields) {
-                    String setMethod = "set" + field.getName().substring(0, 1).toUpperCase()
-                            + field.getName().substring(1);
-                    model.getClass().getDeclaredMethod(
-                            setMethod, field.getTypeClass()).invoke(model, rs.getObject(field.getName())
-                    );
-                }
-                models.add(model);
-            }
-        } catch (SQLException | NoSuchMethodException | SecurityException | IllegalAccessException |
-                 IllegalArgumentException | InvocationTargetException | InstantiationException ex) {
-            Logger.getLogger(Model.class.getName()).log(
+        } catch (InstantiationException e) {
+            Logger.getLogger(targetClass.getName()).log(
                     Level.SEVERE,
-                    "Error while trying to find all entities in the model table that match the given condition. SQL: " + sql,
-                    ex
+                    "Could not instantiate model",
+                    e
             );
         }
-        return models;
-    }
 
-    /**
-     * Helper method for where(String, String, Object)
-     * TODO: Make this static
-     *
-     * @param column The column to check
-     * @param value  The value to check against
-     * @return A list of models that match the condition
-     */
-    public List<Model> where(String column, Object value) {
-        return where(column, "=", value);
+        return targetModel;
     }
 
     /**
      * Finds all entities in the model table that match the given conditions.
-     * TODO: Make this static
      *
-     * @param columns   The columns to check
-     * @param operators The operators to use (e.g. =, >, <, etc.)
-     * @param values    The values to check against
+     * @param targetClass The class of the model
+     * @param columns     The columns to check
+     * @param operators   The operators to use (e.g. =, >, <, etc.)
+     * @param values      The values to check against
+     * @param <SubModel>  The model class
      * @return A list of models that match the conditions
      */
-    public List<Model> multipleWhere(String[] columns, String[] operators, Object[] values) {
-        if (columns.length != operators.length || columns.length != values.length) {
-            Logger.getLogger(getClass().getName()).log(
-                    Level.SEVERE,
-                    "columns, operators and values must have the same length"
-            );
-            return null;
-        }
-
-        StringBuilder sql = new StringBuilder("SELECT * FROM " + tableName + " WHERE ");
-        for (int i = 0; i < columns.length; i++) {
-            sql.append(columns[i]).append(" ").append(operators[i]).append(" ?");
-
-            if ((i + 1) < columns.length) {
-                sql.append(" AND ");
-            }
-        }
-
+    public static <SubModel extends Model> List<SubModel> where(
+            Class<SubModel> targetClass,
+            String[] columns,
+            String[] operators,
+            Object[] values
+    ) {
         Connector connector = Connector.getInstance();
+        List<SubModel> models = new ArrayList<>();
 
-        List<Model> models = new ArrayList<>();
+        if (columns.length != operators.length || columns.length != values.length) {
+            Logger.getLogger(targetClass.getName()).log(
+                    Level.SEVERE,
+                    "Columns, operators and values must have the same length"
+            );
+            return models;
+        }
+
         try {
+            SubModel targetModel = targetClass.getDeclaredConstructor().newInstance();
+            String tableName = targetModel.getTableName();
+            String primaryKeyName = targetModel.getPrimaryKeyName();
+
+            StringBuilder sql = new StringBuilder("SELECT * FROM " + tableName + " WHERE ");
+            for (int i = 0; i < columns.length; i++) {
+                sql.append(columns[i]).append(" ").append(operators[i]).append(" ?");
+
+                if ((i + 1) < columns.length) {
+                    sql.append(" AND ");
+                }
+            }
+
             PreparedStatement statement = connector.open().prepareStatement(sql.toString());
             for (int i = 0; i < values.length; i++) {
                 statement.setObject(i + 1, values[i]);
             }
             ResultSet rs = statement.executeQuery();
+
             while (rs.next()) {
-                Model model = this.getClass().getDeclaredConstructor().newInstance();
+                SubModel model = targetClass.getDeclaredConstructor().newInstance();
                 Method[] methods = model.getClass().getDeclaredMethods();
                 List<Field> fields = Utility.getFields(methods, model, true, primaryKeyName);
+
                 for (Field field : fields) {
                     String setMethod = "set" + field.getName().substring(0, 1).toUpperCase()
                             + field.getName().substring(1);
                     model.getClass().getDeclaredMethod(
-                            setMethod, field.getTypeClass()).invoke(model, rs.getObject(field.getName())
+                            setMethod,
+                            field.getTypeClass()
+                    ).invoke(
+                            model,
+                            rs.getObject(field.getName())
                     );
                 }
                 models.add(model);
             }
         } catch (SQLException | NoSuchMethodException | SecurityException | IllegalAccessException |
-                 IllegalArgumentException | InvocationTargetException | InstantiationException ex) {
-            Logger.getLogger(Model.class.getName()).log(
+                 IllegalArgumentException | InvocationTargetException e) {
+            Logger.getLogger(targetClass.getName()).log(
                     Level.SEVERE,
-                    "Error while executing multipleWhere query. SQL: " + sql.toString(),
-                    ex
+                    "Error while executing multipleWhere query.",
+                    e
+            );
+        } catch (InstantiationException e) {
+            Logger.getLogger(targetClass.getName()).log(
+                    Level.SEVERE,
+                    "Could not instantiate model",
+                    e
             );
         }
+
         return models;
+    }
+
+    /**
+     * Helper method for where() that only takes one condition with equals operator
+     *
+     * @param targetClass The class of the model
+     * @param column      The column to check
+     * @param value       The value to check against
+     * @param <SubModel>  The model class
+     * @return A list of models that match the conditions
+     */
+    public static <SubModel extends Model> List<SubModel> where(
+            Class<SubModel> targetClass,
+            String column,
+            Object value
+    ) {
+        return where(targetClass, new String[]{column}, new String[]{"="}, new Object[]{value});
+    }
+
+    /**
+     * Helper method for where() that only takes one condition
+     * @param targetClass The class of the model
+     * @param column The column to check
+     * @param operator The operator to use (e.g. =, >, <, etc.)
+     * @param value The value to check against
+     * @return A list of models that match the conditions
+     * @param <SubModel> The model class
+     */
+    public static <SubModel extends Model> List<SubModel> where(
+            Class<SubModel> targetClass,
+            String column,
+            String operator,
+            Object value
+    ) {
+        return where(targetClass, new String[]{column}, new String[]{operator}, new Object[]{value});
     }
 }

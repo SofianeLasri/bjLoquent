@@ -2,6 +2,7 @@ package org.bjloquent;
 
 import org.bjloquent.models.ModelWithCustomTableName;
 import org.bjloquent.models.Player;
+import org.bjloquent.models.PlayerSetting;
 import org.bjloquent.models.User;
 
 import java.sql.Connection;
@@ -536,6 +537,126 @@ public class ModelsTests {
         // Finally we can drop the table
         String dropUserTableSql = "DROP TABLE users";
         connector.execute(dropUserTableSql);
+
+        connector.close();
+    }
+
+    @org.junit.jupiter.api.Test
+    public void testInsertAndTestWhereWithTextField() {
+        // bjLoquent don't have yet a way to create a table
+        // so we need to create it manually
+        String createUserTableSql = "CREATE TABLE IF NOT EXISTS players (" +
+                "uuid VARCHAR(255) NOT NULL, " +
+                "name VARCHAR(255), " +
+                "joinedDate TIMESTAMP, " +
+                "score INT, " +
+                "PRIMARY KEY (uuid))";
+        String createSettingsTableSql = "CREATE TABLE IF NOT EXISTS `players_settings` (" +
+                "  `uuid` varchar(36) NOT NULL DEFAULT ''," +
+                "  `name` varchar(128) NOT NULL," +
+                "  `value` text CHARACTER SET utf8mb3 COLLATE utf8mb3_bin NOT NULL," +
+                "  PRIMARY KEY (`uuid`,`name`))";
+
+        Connector connector = Connector.getInstance();
+        connector.setDBConfig(dbConfig);
+        connector.execute(createUserTableSql);
+        connector.execute(createSettingsTableSql);
+
+        // Now we can insert a new user
+        Player firstPlayer = new Player();
+        StringBuilder uuid = new StringBuilder();
+        for (int i = 0; i < 4; i++) {
+            for (int j = 0; j < 4; j++) {
+                uuid.append(new java.util.Random().nextInt(10));
+            }
+            if (i < 3) {
+                uuid.append("-");
+            }
+        }
+        firstPlayer.setUuid(uuid.toString());
+        firstPlayer.setName("Gordon Freeman");
+
+        Timestamp timestamp = new Timestamp(System.currentTimeMillis());
+        // We need to round the timestamp to seconds because it seems that the milliseconds are not supported
+        timestamp.setNanos(0);
+        firstPlayer.setJoinedDate(timestamp);
+        firstPlayer.setScore(100);
+
+        firstPlayer.create();
+
+        Player secondPlayer = new Player();
+        uuid = new StringBuilder();
+        for (int i = 0; i < 4; i++) {
+            for (int j = 0; j < 4; j++) {
+                uuid.append(new java.util.Random().nextInt(10));
+            }
+            if (i < 3) {
+                uuid.append("-");
+            }
+        }
+        secondPlayer.setUuid(uuid.toString());
+        secondPlayer.setName("Alyx Vance");
+        secondPlayer.setJoinedDate(timestamp);
+        secondPlayer.setScore(200);
+
+        secondPlayer.create();
+
+        // Now we create the settings for the players
+        // story and role
+
+        PlayerSetting firstPlayerStory = new PlayerSetting();
+        firstPlayerStory.setUuid(firstPlayer.getUuid());
+        firstPlayerStory.setName("story");
+        firstPlayerStory.setValue("Gordon Freeman is the main caracter of Half-Life 1 and 2");
+        firstPlayerStory.create();
+
+        PlayerSetting firstPlayerRole = new PlayerSetting();
+        firstPlayerRole.setUuid(firstPlayer.getUuid());
+        firstPlayerRole.setName("role");
+        firstPlayerRole.setValue("Scientist");
+        firstPlayerRole.create();
+
+        PlayerSetting secondPlayerStory = new PlayerSetting();
+        secondPlayerStory.setUuid(secondPlayer.getUuid());
+        secondPlayerStory.setName("story");
+        secondPlayerStory.setValue("Alyx Vance Eli's daughter");
+        secondPlayerStory.create();
+
+        PlayerSetting secondPlayerRole = new PlayerSetting();
+        secondPlayerRole.setUuid(secondPlayer.getUuid());
+        secondPlayerRole.setName("role");
+        secondPlayerRole.setValue("Rebel");
+        secondPlayerRole.create();
+
+        // Now we want the story of the first player
+        List<PlayerSetting> playerSettings = PlayerSetting.where(
+                PlayerSetting.class,
+                new String[]{"uuid", "name"},
+                new String[]{"=", "="},
+                new String[]{firstPlayer.getUuid(), "story"}
+        );
+
+        assertEquals(1, playerSettings.size());
+
+        PlayerSetting firstPlayerStoryFound = playerSettings.get(0);
+        assertEquals(firstPlayerStory.getValue(), firstPlayerStoryFound.getValue());
+
+        // Now we want the role of the second player
+        playerSettings = PlayerSetting.where(
+                PlayerSetting.class,
+                new String[]{"uuid", "name"},
+                new String[]{"=", "="},
+                new String[]{secondPlayer.getUuid(), "role"}
+        );
+
+        assertEquals(1, playerSettings.size());
+
+        PlayerSetting secondPlayerRoleFound = playerSettings.get(0);
+        assertEquals(secondPlayerRole.getValue(), secondPlayerRoleFound.getValue());
+
+        // Finally we can drop the table
+        String dropTables = "DROP TABLE players, players_settings";
+        connector.execute(dropTables);
 
         connector.close();
     }

@@ -34,11 +34,11 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * @author derickfelix
- * @date Feb 24, 2018
+ * @author derickfelix & SofianeLasri
+ * @date April, 24 2023
  */
 public abstract class Model {
-    protected String primaryKeyName = "id";
+    protected Object primaryKey = "id";
     protected String tableName;
 
     public Model() {
@@ -48,8 +48,8 @@ public abstract class Model {
     /**
      * @return the primaryKeyName
      */
-    public String getPrimaryKeyName() {
-        return primaryKeyName;
+    public Object getPrimaryKey() {
+        return primaryKey;
     }
 
     /**
@@ -67,16 +67,16 @@ public abstract class Model {
      */
     public void create() {
         Method[] methods = this.getClass().getDeclaredMethods();
-        List<Field> fields = Utility.getFields(methods, this, false, primaryKeyName);
+        List<Field> fields = Utility.getFields(methods, this, false, primaryKey);
         Connector connector = Connector.getInstance();
 
         StringBuilder sql = new StringBuilder("INSERT INTO " + tableName + " (");
-        Field primaryKey = null;
+        List<Field> primaryKeys = new ArrayList<>();
 
         for (int i = 0; i < fields.size(); i++) {
             Field field = fields.get(i);
             if (field.isPrimaryKey()) {
-                primaryKey = field;
+                primaryKeys.add(field);
             }
 
             sql.append(field.getName());
@@ -86,8 +86,8 @@ public abstract class Model {
             }
         }
 
-        if (primaryKey == null) {
-            Logger.getLogger(getClass().getName()).log(Level.SEVERE, "id cannot be null");
+        if (primaryKeys.size() == 0) {
+            Logger.getLogger(getClass().getName()).log(Level.SEVERE, "Model must have at least one primary key");
             return;
         }
 
@@ -113,7 +113,8 @@ public abstract class Model {
             }
 
             statement.executeUpdate();
-            if (primaryKey.getType().equals("int")) {
+            if (primaryKeys.size() == 1 && primaryKeys.get(0).getType().equals("int")) {
+                Field primaryKey = primaryKeys.get(0);
                 ResultSet rs = statement.getGeneratedKeys();
                 if (rs.next()) {
                     String setPrimaryKeyMethod = "set" + primaryKey.getName().substring(0, 1).toUpperCase()
@@ -139,45 +140,59 @@ public abstract class Model {
      */
     public void save() {
         Method[] methods = this.getClass().getDeclaredMethods();
-        List<Field> fields = Utility.getFields(methods, this, false, primaryKeyName);
+        List<Field> fields = Utility.getFields(methods, this, false, primaryKey);
         Connector connector = Connector.getInstance();
 
-        Field primaryKey = null;
+        List<Field> primaryKeys = new ArrayList<>();
+        List<Field> nonPrimaryKeys = new ArrayList<>();
         StringBuilder preparedSql = new StringBuilder("UPDATE " + tableName + " SET ");
         for (int i = 0; i < fields.size(); i++) {
             Field field = fields.get(i);
 
             if (!field.isPrimaryKey()) {
+                nonPrimaryKeys.add(field);
                 preparedSql.append(field.getName()).append(" = ?");
 
                 if ((i + 1) < fields.size()) {
                     preparedSql.append(", ");
                 }
             } else {
-                primaryKey = field;
+                primaryKeys.add(field);
             }
         }
 
-        if (primaryKey == null) {
-            Logger.getLogger(getClass().getName()).log(Level.SEVERE, "id cannot be null");
+        if (primaryKeys.size() == 0) {
+            Logger.getLogger(getClass().getName()).log(Level.SEVERE, "Model must have at least one primary key");
             return;
         }
 
-        preparedSql.append(" WHERE ").append(primaryKeyName).append(" = ?");
+        StringBuilder primaryKeyWhereCondition = new StringBuilder();
+        for (int i = 0; i < primaryKeys.size(); i++) {
+            Field field = primaryKeys.get(i);
+            primaryKeyWhereCondition.append(field.getName()).append(" = ?");
+
+            if ((i + 1) < primaryKeys.size()) {
+                primaryKeyWhereCondition.append(" AND ");
+            }
+        }
+
+        preparedSql.append(" WHERE ").append(primaryKeyWhereCondition);
 
         String sql = preparedSql.toString();
 
         try {
             PreparedStatement statement = connector.open().prepareStatement(sql);
 
-            for (int i = 0; i < fields.size(); i++) {
-                Field field = fields.get(i);
-                if (!field.isPrimaryKey()) {
-                    statement.setObject(i, field.getValue());
-                }
+            for (int i = 0; i < nonPrimaryKeys.size(); i++) {
+                Field field = nonPrimaryKeys.get(i);
+                statement.setObject(i + 1, field.getValue());
             }
 
-            statement.setObject(fields.size(), primaryKey.getValue());
+            for (int i = 0; i < primaryKeys.size(); i++) {
+                Field field = primaryKeys.get(i);
+                statement.setObject(nonPrimaryKeys.size() + 1 + i, field.getValue());
+            }
+
             statement.executeUpdate();
         } catch (SQLException ex) {
             Logger.getLogger(Model.class.getName()).log(
@@ -192,40 +207,62 @@ public abstract class Model {
      * Deletes an entity in the model table.
      */
     public void delete() {
-        String sql = "DELETE FROM " + tableName;
+        String sql = "DELETE FROM " + tableName + " WHERE ";
         Connector connector = Connector.getInstance();
 
         Method[] methods = this.getClass().getDeclaredMethods();
-        List<Field> fields = Utility.getFields(methods, this, false, primaryKeyName);
-        Field primaryKey = null;
+        List<Field> fields = Utility.getFields(methods, this, false, primaryKey);
+        List<Field> primaryKeys = new ArrayList<>();
         for (Field field : fields) {
             if (field.isPrimaryKey()) {
-                primaryKey = field;
+                primaryKeys.add(field);
                 break;
             }
         }
 
-        if (primaryKey == null) {
-            Logger.getLogger(getClass().getName()).log(Level.SEVERE, "id cannot be null");
+        if (primaryKeys.size() == 0) {
+            Logger.getLogger(getClass().getName()).log(Level.SEVERE, "Model must have at least one primary key");
             return;
         }
 
-        sql += " WHERE " + primaryKeyName + " = ?";
+        StringBuilder primaryKeyWhereCondition = new StringBuilder();
+        for (int i = 0; i < primaryKeys.size(); i++) {
+            Field field = primaryKeys.get(i);
+            primaryKeyWhereCondition.append(field.getName()).append(" = ?");
+
+            if ((i + 1) < primaryKeys.size()) {
+                primaryKeyWhereCondition.append(" AND ");
+            }
+        }
+
+        sql += primaryKeyWhereCondition;
+
         try {
             PreparedStatement statement = connector.open().prepareStatement(sql);
-            statement.setObject(1, primaryKey.getValue());
+
+            for (int i = 0; i < primaryKeys.size(); i++) {
+                Field field = primaryKeys.get(i);
+                statement.setObject(i + 1, field.getValue());
+            }
+
             statement.executeUpdate();
         } catch (SQLException ex) {
+            StringBuilder primaryKeyToString = new StringBuilder();
+            for (Field field : primaryKeys) {
+                primaryKeyToString.append(field.getValue()).append(" ");
+            }
+
             Logger.getLogger(Model.class.getName()).log(
                     Level.SEVERE,
-                    "Could not delete entity with id " + primaryKey.getValue() + " from table " + tableName,
+                    "Could not delete entity with primary key '" + primaryKeyToString + "' from table " + tableName,
                     ex
             );
         }
     }
 
     /**
-     * Finds an entity in the model table
+     * Finds an entity in the model table by its primary key.
+     * Don't works with composite primary keys.
      *
      * @param targetClass     The class of the model
      * @param primaryKeyValue The value of the primary key
@@ -237,9 +274,16 @@ public abstract class Model {
         try {
             targetModel = targetClass.getDeclaredConstructor().newInstance();
             String tableName = targetModel.getTableName();
-            String primaryKeyName = targetModel.getPrimaryKeyName();
+            if(targetModel.getPrimaryKey() instanceof String[]) {
+                Logger.getLogger(targetClass.getName()).log(
+                        Level.SEVERE,
+                        "Composite primary keys are not supported by find method."
+                );
+                return null;
+            }
+            String primaryKey = (String) targetModel.getPrimaryKey();
 
-            String sql = "SELECT * FROM " + tableName + " WHERE " + primaryKeyName + " = ?";
+            String sql = "SELECT * FROM " + tableName + " WHERE " + primaryKey + " = ?";
             Connector connector = Connector.getInstance();
 
             PreparedStatement statement = connector.open().prepareStatement(sql);
@@ -297,7 +341,6 @@ public abstract class Model {
         try {
             SubModel targetModel = targetClass.getDeclaredConstructor().newInstance();
             String tableName = targetModel.getTableName();
-            String primaryKeyName = targetModel.getPrimaryKeyName();
 
             StringBuilder sql = new StringBuilder("SELECT * FROM " + tableName + " WHERE ");
             for (int i = 0; i < columns.length; i++) {
@@ -375,11 +418,12 @@ public abstract class Model {
 
     /**
      * Sets the model fields from a result set
+     *
      * @param rs The result set
      */
     public void setModelFields(ResultSet rs) {
         Method[] methods = this.getClass().getDeclaredMethods();
-        List<Field> fields = Utility.getFields(methods, this, true, primaryKeyName);
+        List<Field> fields = Utility.getFields(methods, this, true, primaryKey);
 
         for (Field field : fields) {
             String setMethod = "set" + field.getName().substring(0, 1).toUpperCase()

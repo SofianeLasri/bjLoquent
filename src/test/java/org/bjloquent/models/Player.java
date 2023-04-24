@@ -11,7 +11,7 @@ public class Player extends Model {
     private int score;
 
     public Player() {
-        super.primaryKeyName = "uuid";
+        super.primaryKey = "uuid";
     }
 
     public String getUuid() {

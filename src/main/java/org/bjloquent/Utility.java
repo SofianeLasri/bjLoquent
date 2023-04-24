@@ -47,9 +47,12 @@ public class Utility {
      * @param invoker the object that is invoking each method
      * @param request whether it is request mode or not, if false, fields with
      *                null values will not be included
+     * @param primaryKey the primary key of the table
      * @return a list of fields
      */
-    public static List<Field> getFields(Method[] methods, Object invoker, boolean request, String primaryKeyName) {
+    public static List<Field> getFields(Method[] methods, Object invoker, boolean request, Object primaryKey) {
+        boolean isCompositePrimaryKey = primaryKey instanceof String[];
+
         List<Field> fields = new ArrayList<>();
         try {
             for (int i = methods.length - 1; i >= 0; i--) {
@@ -59,10 +62,26 @@ public class Utility {
                     Class<?> type = methods[i].getReturnType();
 
                     if (request || value != null) {
-                        if (name.equals(primaryKeyName)) {
-                            fields.add(0, new Field(name, value, type, true));
+                        if(isCompositePrimaryKey) {
+                            String[] keys = (String[]) primaryKey;
+                            boolean isPrimaryKey = false;
+                            for (String key : keys) {
+                                if (name.equals(key)) {
+                                    isPrimaryKey = true;
+                                    break;
+                                }
+                            }
+                            if (isPrimaryKey) {
+                                fields.add(0, new Field(name, value, type, true));
+                            } else {
+                                fields.add(new Field(name, value, type));
+                            }
                         } else {
-                            fields.add(new Field(name, value, type));
+                            if (name.equals(primaryKey)) {
+                                fields.add(0, new Field(name, value, type, true));
+                            } else {
+                                fields.add(new Field(name, value, type));
+                            }
                         }
                     }
                 }

@@ -9,7 +9,7 @@ public class PlayerSetting extends Model {
 
     public PlayerSetting() {
         super.tableName = "players_settings";
-        super.primaryKeyName = "uuid";
+        super.primaryKey = new String[]{"uuid", "name"};
     }
 
     public String getUuid() {

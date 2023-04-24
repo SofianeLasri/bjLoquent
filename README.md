@@ -136,7 +136,7 @@ public class Player extends Model {
 
     public Player() {
         // We specify
-        super.primaryKeyName = "uuid";
+        super.primaryKey = "uuid";
     }
 
     public String getUuid() {

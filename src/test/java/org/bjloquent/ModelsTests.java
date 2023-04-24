@@ -450,7 +450,7 @@ public class ModelsTests {
 
         assertEquals(1, users.size());
 
-        User firstUserFound = (User) users.get(0);
+        User firstUserFound = users.get(0);
         assertEquals(firstUser.getId(), firstUserFound.getId());
         assertEquals(firstUser.getName(), firstUserFound.getName());
 
@@ -458,7 +458,7 @@ public class ModelsTests {
         users = User.where(User.class, "name", "LIKE", "%Vance%");
         assertEquals(1, users.size());
 
-        User secondUserFound = (User) users.get(0);
+        User secondUserFound = users.get(0);
         assertEquals(secondUser.getId(), secondUserFound.getId());
         assertEquals(secondUser.getName(), secondUserFound.getName());
 
@@ -525,11 +525,11 @@ public class ModelsTests {
 
         assertEquals(2, users.size());
 
-        User firstUserFound = (User) users.get(0);
+        User firstUserFound = users.get(0);
         assertEquals(secondUser.getId(), firstUserFound.getId());
         assertEquals(secondUser.getName(), firstUserFound.getName());
 
-        User secondUserFound = (User) users.get(1);
+        User secondUserFound = users.get(1);
         assertEquals(thirdUser.getId(), secondUserFound.getId());
         assertEquals(thirdUser.getName(), secondUserFound.getName());
 

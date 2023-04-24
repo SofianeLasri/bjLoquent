@@ -420,7 +420,7 @@ public abstract class Model {
                         Level.SEVERE,
                         "Illegal argument for method " + setMethod + " in class " + getClass().getName() +
                                 ". Expected " + field.getTypeClass().getName() + " but got " +
-                                resultSetObject,
+                                resultSetObject.getClass().getName(),
                         e
                 );
             } catch (InvocationTargetException e) {

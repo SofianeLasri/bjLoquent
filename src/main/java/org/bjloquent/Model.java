@@ -180,7 +180,11 @@ public abstract class Model {
             statement.setObject(fields.size(), primaryKey.getValue());
             statement.executeUpdate();
         } catch (SQLException ex) {
-            Logger.getLogger(Model.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(Model.class.getName()).log(
+                    Level.SEVERE,
+                    "Error while updating an entity in the database",
+                    ex
+            );
         }
     }
 

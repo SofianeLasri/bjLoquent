@@ -11,7 +11,9 @@ A Java ORM based on [jLoquent](https://github.com/derickfelix/jloquent), inspire
 This library is under the [MIT](https://github.com/derickfelix/jloquent/blob/master/LICENSE) license.
 
 ## How to use it
-bjLoquent is actually not so different of jLoquent. To use it, you have to create a `Configuration` class, just like this.
+bjLoquent is actually not so different of jLoquent. **You should check the JUnit test file to see how it works.** But here is a quick example.
+
+Firstly, in order to use it you have to create a `Configuration` class, just like this.
 
 **Configuration.java**
 
